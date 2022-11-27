@@ -151,12 +151,23 @@ app.get('/jwt', async(req, res)=>{
   // console.log(user)
   res.status(403).send({accessToken: ''})
 })
-app.get('/users/admin/:email', async (req, res)=>{
+
+app.get('/users/user/:email', async (req, res)=>{
   const email = req.params.email;
   const query = {email: email}
   const user = await usersCollection.findOne(query)
-  res.send({isAdmin: user?.role === 'admin'})
+  res.send({
+    isSeller: user?.user === 'seller',
+    isAdmin: user?.role === 'admin'
 })
+})
+app.get('/myProduct', async (req, res)=>{
+  const email = req.query.email;
+  const query ={email: email}
+  const result = await addProductCollection.find(query).toArray()
+  res.send(result)
+})
+
 
 app.put('/users/admin/:id',verifyJWT, async (req, res)=>{
   const decodedEmail = req.decoded.email;
