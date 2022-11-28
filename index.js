@@ -44,6 +44,7 @@ const addProductCollection = client.db('booksMarket').collection('addProduct')
 const usersCollection = client.db('booksMarket').collection('users')
 const paymentsCollection = client.db('booksMarket').collection('payments')
 const advertisementCollection = client.db('booksMarket').collection('advertisement')
+const reportCollection = client.db('booksMarket').collection('report')
 app.get('/products', async (req, res)=>{
   const query = {}
   const products = await productsCollection.find(query).toArray()
@@ -72,6 +73,18 @@ app.get('/advertisement', async (req, res)=>{
   const result = await advertisementCollection.find(query).toArray()
   res.send(result)
 })
+
+app.post('/report', async(req, res)=>{
+  const report = req.body
+  const result = await reportCollection.insertOne(report)
+  res.send(result)
+})
+app.get('/report', async(req, res)=>{
+  const report = {}
+  const result = await reportCollection.find(report).toArray()
+  res.send(result)
+})
+
 app.post("/create-payment-intent", async(req, res)=>{
   const userInfo = req.body;
   const price = parseInt(userInfo.price);
@@ -118,30 +131,40 @@ app.get('/users', async (req, res)=>{
 
 app.post('/userInfo', async(req, res)=>{
   const info = req.body;
-  const email = info.sellerEmail;
+  const id = info.sellerId;
   const productInfo = await userInfoCollection.insertOne(info)
-  const filter = {email: email}
+  const filter = {_id: ObjectId(id)}
   const updateDoc = {
     $set:{
       sold: 'Out of Stock'
     }
   }
+  const advertisement = await advertisementCollection.updateMany(filter, updateDoc)
   const result = await addProductCollection.updateOne(filter, updateDoc)
   res.send(productInfo)
 })
-app.get('/userInfo',verifyJWT, async (req, res)=>{
-  // const query = {}
+// app.get('/userInfo',verifyJWT, async (req, res)=>{
+//   // const query = {}
 
-  const email = req.query.email;
-  const decodedEmail = req.decoded.email;
-  if(email !== decodedEmail){
-   return res.status(403).send({message: 'forbidden access'})
-  }
-  const filter = {email: email}
-  const result = await userInfoCollection.find(filter).toArray()
+//   const email = req.query.email;
+//   const decodedEmail = req.decoded.email;
+//   if(email !== decodedEmail){
+//    return res.status(403).send({message: 'forbidden access'})
+//   }
+//   const filter = {email: email}
+//   const result = await userInfoCollection.find(filter).toArray()
+//   res.send(result)
+  
+// })
+app.get('/userInfo',verifyJWT, async (req, res)=>{
+  const query = {}
+  const result = await userInfoCollection.find(query).toArray()
   res.send(result)
   
 })
+
+
+
 app.get('/userInfo/:id', async (req, res)=>{
   const id = req.params.id;
   const filter = {_id: ObjectId(id)}
@@ -184,10 +207,38 @@ app.get('/jwt', async(req, res)=>{
 app.get('/users/user/:email', async (req, res)=>{
   const email = req.params.email;
   const query = {email: email}
+  
   const user = await usersCollection.findOne(query)
+  if(user?.veryfied === 'Veryfield'){
+    const updateDoc ={
+      $set:{
+        veryfied: true
+      }
+    }
+    const result = await addProductCollection.updateMany(query, updateDoc)
+  }
   res.send({
     isSeller: user?.user === 'seller',
-    isAdmin: user?.role === 'admin'
+    isAdmin: user?.role === 'admin',
+    isVerify: user?.veryfied === 'Veryfied'
+})
+app.delete('/users/delete/:id', async (req, res)=>{
+  const id = req.params.id;
+  const query = {_id: ObjectId(id)}
+  const result = await usersCollection.deleteOne(query)
+  res.send(result)
+})
+app.delete('/userInfo/delete/:id', async (req, res)=>{
+  const id = req.params.id;
+  const query = {_id: ObjectId(id)}
+  const result = await userInfoCollection.deleteOne(query)
+  res.send(result)
+})
+app.delete('/users/report/:id', async (req, res)=>{
+  const id = req.params.id;
+  const query = {_id: ObjectId(id)}
+  const result = await addProductCollection.deleteOne(query)
+  res.send(result)
 })
 })
 app.get('/myProduct', async (req, res)=>{
@@ -196,7 +247,21 @@ app.get('/myProduct', async (req, res)=>{
   const result = await addProductCollection.find(query).toArray()
   res.send(result)
 })
+app.put('/users/verify/:id', async (req, res)=>{
 
+  const id = req.params.id;
+  const filter = {_id: ObjectId(id)}
+  const option = {upsert: true}
+  const updateDoc = {
+    $set:{
+      veryfied: 'Veryfied'
+    }
+  }
+  app.post('/report')
+
+  const result = await usersCollection.updateOne(filter, updateDoc, option)
+  res.send(result)
+})
 
 app.put('/users/admin/:id',verifyJWT, async (req, res)=>{
   const decodedEmail = req.decoded.email;
@@ -211,11 +276,12 @@ const filter = {_id: ObjectId(id)}
 const option = {upsert: true}
 const updateDoc = {
   $set: {
-    role: 'admin'
-  }
+    role: 'admin',
+    
+ }
 }
-const setAdmin = await usersCollection.updateOne(filter, updateDoc, option)
-res.send(setAdmin)
+const result = await usersCollection.updateOne(filter, updateDoc, option)
+res.send(result)
 })
   }
   finally{
