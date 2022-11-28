@@ -43,6 +43,7 @@ const userInfoCollection = client.db('booksMarket').collection('UserInfo')
 const addProductCollection = client.db('booksMarket').collection('addProduct')
 const usersCollection = client.db('booksMarket').collection('users')
 const paymentsCollection = client.db('booksMarket').collection('payments')
+const advertisementCollection = client.db('booksMarket').collection('advertisement')
 app.get('/products', async (req, res)=>{
   const query = {}
   const products = await productsCollection.find(query).toArray()
@@ -60,6 +61,17 @@ app.get('/productSpacialty', async(req, res)=>{
   res.send(result)
 })
 
+app.post('/advertisement', async (req, res)=>{
+  const advertisement  =req.body;
+  const result = await advertisementCollection.insertOne(advertisement)
+  res.send(result)
+})
+
+app.get('/advertisement', async (req, res)=>{
+  const query = {}
+  const result = await advertisementCollection.find(query).toArray()
+  res.send(result)
+})
 app.post("/create-payment-intent", async(req, res)=>{
   const userInfo = req.body;
   const price = parseInt(userInfo.price);
@@ -106,25 +118,35 @@ app.get('/users', async (req, res)=>{
 
 app.post('/userInfo', async(req, res)=>{
   const info = req.body;
+  const email = info.sellerEmail;
   const productInfo = await userInfoCollection.insertOne(info)
+  const filter = {email: email}
+  const updateDoc = {
+    $set:{
+      sold: 'Out of Stock'
+    }
+  }
+  const result = await addProductCollection.updateOne(filter, updateDoc)
   res.send(productInfo)
 })
 app.get('/userInfo',verifyJWT, async (req, res)=>{
   // const query = {}
+
   const email = req.query.email;
   const decodedEmail = req.decoded.email;
   if(email !== decodedEmail){
    return res.status(403).send({message: 'forbidden access'})
   }
-
-  const query = {email: email}
-  const result = await userInfoCollection.find(query).toArray()
+  const filter = {email: email}
+  const result = await userInfoCollection.find(filter).toArray()
   res.send(result)
+  
 })
 app.get('/userInfo/:id', async (req, res)=>{
   const id = req.params.id;
-  const query = {_id: ObjectId(id)}
-  const result = await userInfoCollection.findOne(query)
+  const filter = {_id: ObjectId(id)}
+  const result = await userInfoCollection.findOne(filter)
+
   res.send(result)
 })
 app.post('/addProduct', async (req, res)=>{
@@ -139,6 +161,13 @@ app.get('/addProduct', async (req, res)=>{
   const result = await addProductCollection.find(query).toArray()
   res.send(result)
 })
+// app.get('/addProduct/:id', async (req, res)=>{
+//   const id = req.params.id
+//   const filter = {_id: ObjectId(id)}
+//   const result =await addProductCollection.findOne(filter)
+//   res.send(result)
+// })
+app.post('/')
 
 app.get('/jwt', async(req, res)=>{
   const email = req.query.email;
