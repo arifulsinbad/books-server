@@ -68,7 +68,7 @@ app.post('/advertisement',verifyJWT, async (req, res)=>{
   res.send(result)
 })
 
-app.get('/advertisement',verifyJWT, async (req, res)=>{
+app.get('/advertisement', async (req, res)=>{
   const query = {}
   const result = await advertisementCollection.find(query).toArray()
   res.send(result)
@@ -146,9 +146,10 @@ app.post('/userInfo',verifyJWT, async(req, res)=>{
       sold: 'Out of Stock'
     }
   }
-
+  
   const advertisement = await advertisementCollection.updateOne(filters, updateDoc)
   const result = await addProductCollection.updateOne(filter, updateDoc)
+cel
   res.send(productInfo)
 })
 app.get('/userInfo', async(req, res)=>{
@@ -192,7 +193,7 @@ app.post('/addProduct',verifyJWT, async (req, res)=>{
   // const result = await addProductCollection.insertOne(addProduct)
   res.send(result)
 })
-app.get('/addProduct',verifyJWT, async (req, res)=>{
+app.get('/addProduct', async (req, res)=>{
   const query ={}
   const result = await addProductCollection.find(query).toArray()
   res.send(result)
